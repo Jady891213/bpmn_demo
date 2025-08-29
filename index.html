@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BPMN Token Simulation Demo</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/bpmn-js@11/dist/assets/diagram-js.css,npm/bpmn-js@11/dist/assets/bpmn-font/css/bpmn.css,npm/bpmn-js@11/dist/assets/bpmn-font/css/bpmn-codes.css,npm/bpmn-js@11/dist/assets/bpmn-font/css/bpmn-embedded.css,npm/bpmn-js-token-simulation@0.38.1/assets/css/bpmn-js-token-simulation.css">
+    <style>
+      html, body, #app { height: 100%; margin: 0; }
+      #toolbar { padding: 8px; border-bottom: 1px solid #e5e7eb; display: flex; gap: 8px; align-items: center; }
+      #canvas { height: calc(100% - 48px); }
+      .file-input { display: inline-block; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="toolbar">
+        <button id="btnLoadDefault">加载仓库示例</button>
+        <label class="file-input">
+          <input type="file" id="fileInput" accept=".bpmn,.xml" />
+        </label>
+      </div>
+      <div id="canvas"></div>
+    </div>
+    <!-- 内嵌默认 BPMN（本地 file:// 直接打开可用） -->
+    <script id="default-bpmn" type="text/plain"><?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_1dttqpz" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.3.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.17.0">
+  <bpmn:process id="Process_1ebslm3" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1r5yzmd</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:subProcess id="Activity_03p11ny" name="lv2公司流程">
+      <bpmn:incoming>Flow_1r5yzmd</bpmn:incoming>
+      <bpmn:outgoing>Flow_1hrqkbw</bpmn:outgoing>
+      <bpmn:multiInstanceLoopCharacteristics />
+      <bpmn:startEvent id="Event_1xewfty">
+        <bpmn:outgoing>Flow_023qq02</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_023qq02" sourceRef="Event_1xewfty" targetRef="Activity_1ab3zm0" />
+      <bpmn:subProcess id="Activity_1ab3zm0" name="lv3流程">
+        <bpmn:incoming>Flow_023qq02</bpmn:incoming>
+        <bpmn:outgoing>Flow_0p94h1i</bpmn:outgoing>
+        <bpmn:multiInstanceLoopCharacteristics />
+        <bpmn:startEvent id="Event_0w8ubz3">
+          <bpmn:outgoing>Flow_1t7i8jl</bpmn:outgoing>
+        </bpmn:startEvent>
+        <bpmn:endEvent id="Event_0ugtai4">
+          <bpmn:incoming>Flow_1sc3pu8</bpmn:incoming>
+        </bpmn:endEvent>
+        <bpmn:sequenceFlow id="Flow_1t7i8jl" sourceRef="Event_0w8ubz3" targetRef="Activity_1m9937h" />
+        <bpmn:sequenceFlow id="Flow_0scevkr" sourceRef="Activity_1m9937h" targetRef="Activity_1sang8u" />
+        <bpmn:sequenceFlow id="Flow_1sc3pu8" sourceRef="Activity_1sang8u" targetRef="Event_0ugtai4" />
+        <bpmn:userTask id="Activity_1m9937h" name="lv3提交">
+          <bpmn:incoming>Flow_1t7i8jl</bpmn:incoming>
+          <bpmn:outgoing>Flow_0scevkr</bpmn:outgoing>
+        </bpmn:userTask>
+        <bpmn:userTask id="Activity_1sang8u" name="lv3审核">
+          <bpmn:incoming>Flow_0scevkr</bpmn:incoming>
+          <bpmn:outgoing>Flow_1sc3pu8</bpmn:outgoing>
+        </bpmn:userTask>
+      </bpmn:subProcess>
+      <bpmn:endEvent id="Event_1bddlhx">
+        <bpmn:incoming>Flow_122mlie</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_0p94h1i" sourceRef="Activity_1ab3zm0" targetRef="Activity_1jthpzc" />
+      <bpmn:userTask id="Activity_1jthpzc" name="lv2审核">
+        <bpmn:incoming>Flow_0p94h1i</bpmn:incoming>
+        <bpmn:outgoing>Flow_122mlie</bpmn:outgoing>
+      </bpmn:userTask>
+      <bpmn:sequenceFlow id="Flow_122mlie" sourceRef="Activity_1jthpzc" targetRef="Event_1bddlhx" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_1r5yzmd" sourceRef="StartEvent_1" targetRef="Activity_03p11ny" />
+    <bpmn:endEvent id="Event_15bdvsk">
+      <bpmn:incoming>Flow_05jelf8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_05jelf8" sourceRef="Activity_1lmbfm6" targetRef="Event_15bdvsk" />
+    <bpmn:sequenceFlow id="Flow_1hrqkbw" sourceRef="Activity_03p11ny" targetRef="Activity_1gd38bp" />
+    <bpmn:userTask id="Activity_1gd38bp" name="lv1初审">
+      <bpmn:incoming>Flow_1hrqkbw</bpmn:incoming>
+      <bpmn:outgoing>Flow_1kcg0e6</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_1kcg0e6" sourceRef="Activity_1gd38bp" targetRef="Activity_1lmbfm6" />
+    <bpmn:userTask id="Activity_1lmbfm6" name="lv1终审">
+      <bpmn:incoming>Flow_1kcg0e6</bpmn:incoming>
+      <bpmn:outgoing>Flow_05jelf8</bpmn:outgoing>
+    </bpmn:userTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1ebslm3">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="272" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1o9cq1q_di" bpmnElement="Activity_03p11ny" isExpanded="true">
+        <dc:Bounds x="320" y="80" width="1330" height="560" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1xewfty_di" bpmnElement="Event_1xewfty">
+        <dc:Bounds x="372" y="267" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1crhaqs_di" bpmnElement="Activity_1ab3zm0" isExpanded="true">
+        <dc:Bounds x="450" y="160" width="770" height="340" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0w8ubz3_di" bpmnElement="Event_0w8ubz3">
+        <dc:Bounds x="502" y="312" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0ugtai4_di" bpmnElement="Event_0ugtai4">
+        <dc:Bounds x="1162" y="312" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1uvqs48_di" bpmnElement="Activity_1m9937h">
+        <dc:Bounds x="680" y="290" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0c43ry1_di" bpmnElement="Activity_1sang8u">
+        <dc:Bounds x="940" y="290" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1t7i8jl_di" bpmnElement="Flow_1t7i8jl">
+        <di:waypoint x="538" y="330" />
+        <di:waypoint x="680" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0scevkr_di" bpmnElement="Flow_0scevkr">
+        <di:waypoint x="780" y="330" />
+        <di:waypoint x="940" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1sc3pu8_di" bpmnElement="Flow_1sc3pu8">
+        <di:waypoint x="1040" y="330" />
+        <di:waypoint x="1162" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_1bddlhx_di" bpmnElement="Event_1bddlhx">
+        <dc:Bounds x="1592" y="267" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0bm575l_di" bpmnElement="Activity_1jthpzc">
+        <dc:Bounds x="1440" y="245" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_023qq02_di" bpmnElement="Flow_023qq02">
+        <di:waypoint x="408" y="285" />
+        <di:waypoint x="450" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0p94h1i_di" bpmnElement="Flow_0p94h1i">
+        <di:waypoint x="1220" y="285" />
+        <di:waypoint x="1440" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_122mlie_di" bpmnElement="Flow_122mlie">
+        <di:waypoint x="1540" y="285" />
+        <di:waypoint x="1592" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Event_15bdvsk_di" bpmnElement="Event_15bdvsk">
+        <dc:Bounds x="2112" y="272" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03kvyes_di" bpmnElement="Activity_1gd38bp">
+        <dc:Bounds x="1760" y="250" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0heqphc_di" bpmnElement="Activity_1lmbfm6">
+        <dc:Bounds x="1940" y="250" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1r5yzmd_di" bpmnElement="Flow_1r5yzmd">
+        <di:waypoint x="188" y="290" />
+        <di:waypoint x="320" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05jelf8_di" bpmnElement="Flow_05jelf8">
+        <di:waypoint x="2040" y="290" />
+        <di:waypoint x="2112" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1hrqkbw_di" bpmnElement="Flow_1hrqkbw">
+        <di:waypoint x="1650" y="290" />
+        <di:waypoint x="1760" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1kcg0e6_di" bpmnElement="Flow_1kcg0e6">
+        <di:waypoint x="1860" y="290" />
+        <di:waypoint x="1940" y="290" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions></script>
+
+    <script type="module">
+      import BpmnModeler from 'https://esm.sh/bpmn-js@11/lib/Modeler';
+      import TokenSimulationModule from 'https://esm.sh/bpmn-js-token-simulation@0.38.1';
+
+      const canvas = document.getElementById('canvas');
+
+      const modeler = new BpmnModeler({
+        container: canvas,
+        additionalModules: [ TokenSimulationModule ]
+      });
+
+      async function importXml(xmlText) {
+        try {
+          await modeler.importXML(xmlText);
+        } catch (err) {
+          console.error('导入失败:', err);
+          alert('导入 BPMN 失败，请检查控制台');
+        }
+      }
+
+      async function loadDefault() {
+        const el = document.getElementById('default-bpmn');
+        const xml = el ? el.textContent : '';
+        await importXml(xml);
+      }
+
+      document.getElementById('btnLoadDefault').addEventListener('click', loadDefault);
+
+      document.getElementById('fileInput').addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        await importXml(text);
+      });
+
+      loadDefault();
+    </script>
+  </body>
+  </html>
+
+
