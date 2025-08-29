@@ -7,12 +7,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/combine/npm/bpmn-js@11/dist/assets/diagram-js.css,npm/bpmn-js@11/dist/assets/bpmn-font/css/bpmn.css,npm/bpmn-js@11/dist/assets/bpmn-font/css/bpmn-codes.css,npm/bpmn-js@11/dist/assets/bpmn-font/css/bpmn-embedded.css,npm/bpmn-js-token-simulation@0.38.1/assets/css/bpmn-js-token-simulation.css">
     <style>
       html, body { height: 100%; margin: 0; }
-      #app { height: 100vh; display: flex; }
+      #app { height: 100vh; display: flex; position: relative; }
       #sidebar {
         width: 260px;
         border-right: 1px solid #e5e7eb;
         display: flex;
         flex-direction: column;
+        transition: width .2s ease;
       }
       #side-header { padding: 10px; border-bottom: 1px solid #eef2f7; display: flex; flex-direction: column; gap: 8px; }
       #fileInput { width: 100%; }
@@ -23,18 +24,38 @@
       #content { flex: 1; position: relative; }
       #canvas { position: absolute; inset: 0; height: 100%; }
       button { cursor: pointer; }
+
+      /* 折叠态 */
+      #app.sidebar-collapsed #sidebar {
+        width: 0;
+        border-right: none;
+        overflow: hidden;
+      }
+      /* 浮动展开按钮（折叠时显示） */
+      #toggleSidebarFloating {
+        position: absolute;
+        left: 8px;
+        top: 8px;
+        z-index: 10;
+        display: none;
+      }
+      #app.sidebar-collapsed #toggleSidebarFloating { display: inline-block; }
     </style>
   </head>
   <body>
     <div id="app">
       <aside id="sidebar">
         <div id="side-header">
-          <button id="btnLoadDefault">加载内置示例</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button id="btnLoadDefault">加载内置示例</button>
+            <button id="toggleSidebar" title="收起/展开侧栏">收起侧栏</button>
+          </div>
           <input type="file" id="fileInput" accept=".bpmn,.xml" />
         </div>
         <ul id="fileList"></ul>
       </aside>
       <main id="content">
+        <button id="toggleSidebarFloating" title="展开侧栏">展开侧栏</button>
         <div id="canvas"></div>
       </main>
     </div>
@@ -198,6 +219,7 @@
       import TokenSimulationModule from 'https://esm.sh/bpmn-js-token-simulation@0.38.1';
 
       const canvas = document.getElementById('canvas');
+      const appEl = document.getElementById('app');
 
       const modeler = new BpmnModeler({
         container: canvas,
@@ -269,6 +291,21 @@
       // 初始：渲染列表并加载内置示例
       renderFileList(undefined);
       loadDefault();
+
+      // 侧栏收起/展开
+      const toggleBtn = document.getElementById('toggleSidebar');
+      const toggleFloating = document.getElementById('toggleSidebarFloating');
+
+      function setCollapsed(collapsed) {
+        appEl.classList.toggle('sidebar-collapsed', collapsed);
+        if (toggleBtn) toggleBtn.textContent = collapsed ? '展开侧栏' : '收起侧栏';
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        const collapsed = appEl.classList.contains('sidebar-collapsed');
+        setCollapsed(!collapsed);
+      });
+      toggleFloating.addEventListener('click', () => setCollapsed(false));
     </script>
   </body>
   </html>
