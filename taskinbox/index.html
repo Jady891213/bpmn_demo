@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BPMN/CMMN 报表任务中心</title>
+    <title>BPMN/CMMN 报表任务中心 - 浅色主题</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -11,7 +11,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1e293b; /* Slate-800 Dark Background */
+            background-color: #f3f4f6; /* Gray-100 Light Background */
+            color: #1f2937; /* Gray-800 Default Text Color */
         }
         /* 针对右侧详情栏在小屏幕上进行全屏处理 */
         .task-detail-container.hidden-mobile {
@@ -19,7 +20,7 @@
         }
         @media (min-width: 768px) {
             .task-detail-container.hidden-mobile {
-                display: block;
+                display: flex; /* 确保在桌面端是 flex 布局 */
             }
             /* 确保右栏的顶部操作区在滚动时保持可见 */
             .detail-header-sticky {
@@ -28,62 +29,78 @@
                 z-index: 10;
             }
         }
-        /* Excel 样式模拟 */
+        /* Excel 样式模拟 - 适应浅色主题 */
         .excel-like-table th, .excel-like-table td {
-            border: 1px solid #334155; /* Slate-700 */
+            border: 1px solid #d1d5db; /* Gray-300 */
             padding: 8px;
             white-space: nowrap;
         }
         .excel-like-table th {
-            background-color: #334155; /* Slate-700 */
-            color: #e2e8f0; /* Slate-200 */
+            background-color: #e5e7eb; /* Gray-200 */
+            color: #1f2937; /* Gray-800 */
             font-weight: 600;
         }
         .excel-like-table td {
-            background-color: #273448; /* Darker slate for cell background */
-            color: #cbd5e1; /* Slate-300 */
+            background-color: #ffffff; /* White for cell background */
+            color: #374151; /* Gray-700 */
         }
         .excel-like-table {
             border-collapse: collapse;
             width: 100%;
         }
+        /* 确保合并后的主栏在收起状态下只显示图标 */
+        .task-list-collapsed {
+            width: 3rem !important; /* w-12 */
+        }
+        .task-list-expanded {
+            width: 24rem !important; /* w-96 */
+        }
     </style>
 </head>
-<body class="h-screen overflow-hidden text-gray-100">
+<body class="h-screen overflow-hidden">
 
-    <!-- 主应用容器 -->
+    <!-- 主应用容器 (两栏布局) -->
     <div id="app" class="h-full flex">
 
-        <!-- 1. 左栏：流程分组列表 -->
-        <div id="sidebar" class="hidden md:flex flex-col w-56 bg-slate-900 p-4 border-r border-slate-700 overflow-y-auto transition-all duration-300 ease-in-out flex-shrink-0">
-            <h1 class="text-xl font-bold mb-6 text-indigo-400">流程/案例分组</h1>
-            <div id="process-list" class="space-y-4">
-                <!-- 流程列表将由 JS 注入 -->
-            </div>
-        </div>
+        <!-- 1. 左侧主栏：合并后的 流程/任务列表与筛选器 (Inbox) -->
+        <div id="task-list-container" class="task-list-expanded flex flex-col w-full md:w-96 bg-white border-r border-gray-200 overflow-y-auto transition-[width] duration-300 ease-in-out flex-shrink-0">
 
-        <!-- 2. 中栏：任务列表 (Inbox) -->
-        <div id="task-list-container" class="flex flex-col w-full md:w-64 lg:w-72 bg-slate-800 border-r border-slate-700 overflow-y-auto transition-[width] duration-300 ease-in-out flex-shrink-0">
-            <!-- 筛选标签页/搜索/收起按钮 -->
-            <div class="sticky top-0 p-4 bg-slate-800 z-20 shadow-lg border-b border-slate-700">
-                <div class="flex justify-between items-center" id="task-list-controls">
-                    <!-- 移动端返回按钮 (仅移动端可见) -->
-                    <button id="mobile-back" class="md:hidden p-1 rounded-full text-slate-400 hover:text-white transition duration-150 hidden">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    </button>
-                    <!-- 收起/展开按钮 (仅桌面端可见) -->
-                    <button id="toggle-sidebar" onclick="toggleSidebarAndList()" class="p-1 rounded-full text-slate-400 hover:text-white transition duration-150 flex-shrink-0 hidden md:block ml-auto">
+            <!-- 筛选器/搜索/控制区 (Sticky Header) -->
+            <div id="task-list-header" class="sticky top-0 p-4 bg-white z-20 shadow-md border-b border-gray-200 flex-shrink-0">
+                
+                <!-- 顶部控制条：标题和收起按钮 -->
+                <!-- 在收起状态下，这个 div 仅包含按钮并居中 -->
+                <div class="flex justify-between items-center mb-4" id="task-list-controls">
+                    <!-- 标题 (在收起状态下隐藏) -->
+                    <h1 id="main-column-title" class="text-xl font-bold text-indigo-600 transition-opacity duration-150">任务与流程中心</h1>
+                    
+                    <!-- 收起/展开按钮 (关键修复：保持可见) -->
+                    <button id="toggle-main-column" onclick="toggleMainColumn()" class="p-1 rounded-full text-gray-400 hover:text-indigo-600 transition duration-150 flex-shrink-0 hidden md:block">
                         <!-- Default: Collapse icon (Chevron Left) -->
                         <svg id="collapse-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
                     </button>
                 </div>
 
-                <div id="task-list-content-header" class="transition-opacity duration-300">
-                    <div class="flex space-x-2 mb-3 mt-3">
-                        <button id="tab-pending" onclick="setTaskFilter('Pending')" class="flex-1 p-2 rounded-lg bg-indigo-600 text-white font-semibold text-sm transition duration-150">待办任务 (5)</button>
-                        <button id="tab-completed" onclick="setTaskFilter('Completed')" class="flex-1 p-2 rounded-lg bg-slate-700 text-slate-400 font-semibold text-sm hover:bg-slate-700 transition duration-150">已办任务 (0)</button>
+                <!-- 实际筛选内容 (在收起状态下隐藏) -->
+                <div id="task-list-filters" class="transition-opacity duration-300">
+                    
+                    <!-- 1. 流程/案例分组筛选 (Dropdown) -->
+                    <div class="mb-4">
+                        <label for="process-filter" class="text-xs font-medium uppercase text-gray-500 block mb-1">按流程/案例筛选</label>
+                        <!-- NOTE: 初始加载时选项为空，由 JS 填充 -->
+                        <select id="process-filter" onchange="setProcessFilter(this.value)" class="w-full p-2 rounded-lg bg-gray-100 border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-gray-800">
+                            <!-- Options populated by JS: 默认 'All' -->
+                        </select>
                     </div>
-                    <input type="text" placeholder="搜索任务标题 / 流程名称..." class="w-full p-2 rounded-lg bg-slate-700 border border-slate-600 focus:ring-indigo-500 focus:border-indigo-500 text-sm placeholder-slate-400">
+
+                    <!-- 2. 任务状态筛选 (Tabs) -->
+                    <div class="flex space-x-2 mb-3">
+                        <button id="tab-pending" onclick="setTaskFilter('Pending')" class="flex-1 p-2 rounded-lg bg-indigo-600 text-white font-semibold text-sm transition duration-150 shadow-md">待办任务</button>
+                        <button id="tab-completed" onclick="setTaskFilter('Completed')" class="flex-1 p-2 rounded-lg bg-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-300 transition duration-150">已办任务</button>
+                    </div>
+                    
+                    <!-- 3. 任务搜索 -->
+                    <input type="text" id="task-search" oninput="renderTaskList()" placeholder="搜索任务标题 / 流程名称..." class="w-full p-2 rounded-lg bg-gray-100 border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm placeholder-gray-500 text-gray-800">
                 </div>
             </div>
 
@@ -93,26 +110,26 @@
             </div>
         </div>
 
-        <!-- 3. 右栏：任务详情与报表 (Task Detail) -->
-        <div id="task-detail" class="task-detail-container flex-grow flex-col bg-slate-700 overflow-y-auto relative transition-all duration-300 ease-in-out hidden-mobile">
+        <!-- 2. 右侧栏：任务详情与报表 (Task Detail) -->
+        <div id="task-detail" class="task-detail-container flex-grow flex-col bg-gray-50 overflow-y-auto relative transition-all duration-300 ease-in-out hidden-mobile">
             <!-- 返回按钮 (仅移动端可见) -->
-            <button id="back-to-inbox" class="md:hidden absolute top-4 left-4 p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white z-30">
+            <button id="back-to-inbox" class="md:hidden absolute top-4 left-4 p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white z-30 shadow-lg">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             </button>
 
             <div id="detail-content" class="flex flex-col h-full">
                 <div class="flex-grow flex flex-col">
-                    <div class="text-center py-16 text-slate-400" id="initial-message">
-                        <svg class="w-12 h-12 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-17 4v10a2 2 0 002 2h12a2 2 0 002-2v-10"></path></svg>
-                        <p class="text-xl font-medium">请从中栏选择一个任务进行处理。</p>
+                    <div class="text-center py-16 text-gray-500" id="initial-message">
+                        <svg class="w-12 h-12 mx-auto mb-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-17 4v10a2 2 0 002 2h12a2 2 0 002-2v-10"></path></svg>
+                        <p class="text-xl font-medium">请从左栏选择一个任务进行处理。</p>
                         <p class="text-sm">任务详情、报表列表和 Excel 报表详情将在此处动态加载。</p>
                     </div>
                     <!-- 动态加载内容容器 -->
                     <div id="task-data-view" class="h-full w-full hidden flex-col">
                         <!-- 3.1 顶部：任务标题、描述与操作按钮 -->
-                        <div id="detail-header" class="detail-header-sticky p-6 bg-slate-800 rounded-b-lg shadow-xl border-b border-slate-600">
-                            <h2 id="task-title-display" class="text-2xl font-extrabold text-white truncate"></h2>
-                            <p id="task-desc-display" class="text-sm text-slate-400 mt-1"></p>
+                        <div id="detail-header" class="detail-header-sticky p-6 bg-white rounded-b-lg shadow-lg border-b border-gray-200">
+                            <h2 id="task-title-display" class="text-2xl font-extrabold text-gray-900 truncate"></h2>
+                            <p id="task-desc-display" class="text-sm text-gray-500 mt-1"></p>
                             <div class="flex flex-wrap gap-3 mt-4">
                                 <button onclick="handleTaskAction(activeTaskId, 'Complete')" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 flex items-center text-sm">
                                     <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -122,7 +139,7 @@
                                     <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                     拒绝/退回
                                 </button>
-                                <button onclick="handleTaskAction(activeTaskId, 'Delegate')" class="px-4 py-2 bg-slate-600 text-slate-200 font-semibold rounded-lg shadow-md hover:bg-slate-500 transition duration-200 flex items-center text-sm">
+                                <button onclick="handleTaskAction(activeTaskId, 'Delegate')" class="px-4 py-2 bg-gray-300 text-gray-700 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-200 flex items-center text-sm">
                                     委派
                                 </button>
                             </div>
@@ -131,16 +148,16 @@
                         <!-- 3.2 底部：报表导航和详情 split -->
                         <div class="flex flex-grow overflow-hidden pt-4 px-6 pb-6">
                             <!-- 3.2.1 左栏：报表列表导航 -->
-                            <div id="report-nav" class="w-1/4 max-w-xs bg-slate-800 p-4 rounded-l-lg overflow-y-auto border-r border-slate-700 shadow-inner flex-shrink-0">
-                                <h3 class="text-lg font-semibold mb-3 text-indigo-400">报表列表</h3>
+                            <div id="report-nav" class="w-1/4 max-w-xs bg-white p-4 rounded-l-lg overflow-y-auto border-r border-gray-200 shadow-inner flex-shrink-0">
+                                <h3 class="text-lg font-semibold mb-3 text-indigo-600">报表列表</h3>
 
                                 <!-- 年月筛选器 -->
                                 <div class="flex space-x-2 mb-4">
-                                    <select id="year-filter" class="w-1/2 p-2 rounded-lg bg-slate-700 text-sm border border-slate-600 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <select id="year-filter" class="w-1/2 p-2 rounded-lg bg-gray-100 text-sm border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-gray-800">
                                         <option value="2026">2026 年</option>
                                         <option value="2025" selected>2025 年</option>
                                     </select>
-                                    <select id="month-filter" class="w-1/2 p-2 rounded-lg bg-slate-700 text-sm border border-slate-600 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <select id="month-filter" class="w-1/2 p-2 rounded-lg bg-gray-100 text-sm border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-gray-800">
                                         <option value="12">12 月</option>
                                         <option value="11" selected>11 月</option>
                                         <option value="10">10 月</option>
@@ -154,8 +171,8 @@
                             </div>
 
                             <!-- 3.2.2 右栏：Excel 报表详情 -->
-                            <div id="report-detail" class="flex-grow bg-slate-700 p-4 rounded-r-lg overflow-auto shadow-lg">
-                                <h3 id="report-detail-title" class="text-lg font-semibold mb-3 text-white">请在左侧选择一个报表</h3>
+                            <div id="report-detail" class="flex-grow bg-white p-4 rounded-r-lg overflow-auto shadow-lg">
+                                <h3 id="report-detail-title" class="text-lg font-semibold mb-3 text-gray-900">请在左侧选择一个报表</h3>
                                 <div id="excel-editor" class="text-sm">
                                     <!-- Excel 报表内容由 JS 注入 -->
                                 </div>
@@ -189,11 +206,14 @@
             // 正常任务
             { id: 5, title: "系统故障报告处理及填写", process: "系统事件处理", applicant: "系统管理员", dueDate: "2025-12-05", priority: "High", type: "Report", status: "Pending", content: "SaaS平台核心服务宕机，请立即开始故障处理流程并记录所有步骤，需填写事故报告表。", icon: '🚨',
               reports: [{ id: 'R6', name: '事故原因分析报告', data: 'Data for R6', active: true }, { id: 'R7', name: '修复操作日志', data: 'Data for R7', active: false }] },
+            // 已完成任务 (用于模拟 'Completed' 列表)
+            { id: 6, title: "2025 Q3 绩效评估提交", process: "人力资源绩效管理", applicant: "李明", dueDate: "2025-10-30", priority: "Medium", type: "Review", status: "Completed", content: "已完成Q3绩效评估的提交。", icon: '⭐', reports: [] },
         ];
 
         let activeTaskId = null;
         let currentFilter = 'Pending';
-        let isCollapsed = false; // 新增折叠状态
+        let currentProcessFilter = 'All'; // 流程筛选状态，初始默认值为 'All'
+        let isCollapsed = false; // 折叠状态
 
         const tasksContainer = document.getElementById('tasks-container');
         const detailContainer = document.getElementById('task-detail');
@@ -201,152 +221,192 @@
         const initialMessage = document.getElementById('initial-message');
         const taskDataView = document.getElementById('task-data-view');
         const backButton = document.getElementById('back-to-inbox');
-        const processListContainer = document.getElementById('process-list');
-        // 新增 DOM 引用
-        const sidebar = document.getElementById('sidebar');
+        
+        // 新增/修改 DOM 引用
         const taskListContainer = document.getElementById('task-list-container');
         const collapseIcon = document.getElementById('collapse-icon');
-        const taskListContentHeader = document.getElementById('task-list-content-header');
+        const mainColumnTitle = document.getElementById('main-column-title');
+        const taskListFilters = document.getElementById('task-list-filters');
         const taskListControls = document.getElementById('task-list-controls');
+        const taskListHeader = document.getElementById('task-list-header');
+        const processFilterSelect = document.getElementById('process-filter');
+        const taskSearchInput = document.getElementById('task-search');
 
         const TODAY = new Date().setHours(0, 0, 0, 0);
 
         /**
-         * 切换左栏和中栏的收起/展开状态
+         * 切换主栏的收起/展开状态
          */
-        function toggleSidebarAndList() {
+        function toggleMainColumn() {
             isCollapsed = !isCollapsed;
 
             if (isCollapsed) {
-                // 1. Sidebar (左栏): 隐藏
-                sidebar.classList.add('w-0', 'p-0', 'overflow-hidden');
-                sidebar.classList.remove('w-56', 'p-4');
+                // 1. 主栏: 收缩到边条宽度 w-12
+                taskListContainer.classList.remove('task-list-expanded');
+                taskListContainer.classList.add('task-list-collapsed');
 
-                // 2. Task List (中栏): 收缩到边条宽度 w-12
-                taskListContainer.classList.remove('md:w-64', 'lg:w-72');
-                taskListContainer.classList.add('w-12');
-
-                // 隐藏内容 (筛选器和任务列表)
-                taskListContentHeader.classList.add('opacity-0', 'pointer-events-none');
-                tasksContainer.classList.add('opacity-0', 'pointer-events-none', 'hidden');
-
-                // 调整控制区布局，确保收起按钮居中/靠边
+                // 2. 隐藏内容 (标题, 筛选器, 任务列表)
+                mainColumnTitle.classList.add('hidden'); // 隐藏标题
+                taskListFilters.classList.add('hidden'); // 隐藏筛选器
+                tasksContainer.classList.add('opacity-0', 'pointer-events-none'); // 隐藏列表
+                
+                // 3. 调整控制区布局: 仅显示按钮并居中 (修复点击后无法打开的问题)
+                taskListControls.classList.remove('justify-between', 'mb-4');
                 taskListControls.classList.add('justify-center');
-                taskListControls.classList.remove('justify-between');
-
-                // 更改图标为展开 (Chevron Right)
+                
+                // 4. 调整头部 padding
+                taskListHeader.classList.remove('p-4');
+                taskListHeader.classList.add('py-4', 'px-3');
+                
+                // 5. 更改图标为展开 (Chevron Right)
                 collapseIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>`;
 
             } else {
-                // 1. Sidebar (左栏): 恢复
-                sidebar.classList.remove('w-0', 'p-0', 'overflow-hidden');
-                sidebar.classList.add('w-56', 'p-4');
+                // 1. 主栏: 恢复宽度 w-96
+                taskListContainer.classList.remove('task-list-collapsed');
+                taskListContainer.classList.add('task-list-expanded');
 
-                // 2. Task List (中栏): 恢复宽度和内容
-                taskListContainer.classList.remove('w-12');
-                taskListContainer.classList.add('md:w-64', 'lg:w-72');
+                // 2. 显示内容
+                mainColumnTitle.classList.remove('hidden');
+                taskListFilters.classList.remove('hidden');
+                tasksContainer.classList.remove('opacity-0', 'pointer-events-none');
 
-                // 显示内容
-                taskListContentHeader.classList.remove('opacity-0', 'pointer-events-none');
-                tasksContainer.classList.remove('opacity-0', 'pointer-events-none', 'hidden');
-
-                // 恢复控制区布局
+                // 3. 恢复控制区布局
+                taskListControls.classList.add('justify-between', 'mb-4');
                 taskListControls.classList.remove('justify-center');
-                taskListControls.classList.add('justify-between');
 
+                // 4. 恢复头部 padding
+                taskListHeader.classList.add('p-4');
+                taskListHeader.classList.remove('py-4', 'px-3');
 
-                // 更改图标为收起 (Chevron Left)
+                // 5. 更改图标为收起 (Chevron Left)
                 collapseIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>`;
             }
         }
 
         /**
-         * 渲染流程分组列表 (左栏)
+         * 填充流程筛选下拉框
          */
-        function renderProcessList() {
+        function populateProcessFilter() {
             const processes = mockTasks.reduce((acc, task) => {
-                acc[task.process] = acc[task.process] || { name: task.process, count: 0, tasks: [] };
-                if (task.status === 'Pending') {
-                    acc[task.process].count++;
-                    acc[task.process].tasks.push(task);
+                if (!acc.includes(task.process)) {
+                    acc.push(task.process);
                 }
                 return acc;
-            }, {});
+            }, []);
 
-            processListContainer.innerHTML = '';
+            // 总是将 'All' 选项作为第一个，并计算当前状态下的总数
+            const totalCount = mockTasks.filter(t => t.status === currentFilter).length;
+            let optionsHtml = `<option value="All">所有流程/案例 (${totalCount})</option>`;
 
-            // 添加所有任务/流程视图
-            processListContainer.innerHTML += `
-                <button class="w-full text-left p-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-600 transition duration-150">
-                    📂 所有待办任务 (${mockTasks.filter(t => t.status === 'Pending').length})
-                </button>
-            `;
-
-            Object.values(processes).forEach(process => {
-                if (process.count > 0) {
-                    processListContainer.innerHTML += `
-                        <details class="text-slate-300">
-                            <summary class="cursor-pointer font-medium hover:text-indigo-400 transition duration-150">
-                                ⚙️ ${process.name} (${process.count})
-                            </summary>
-                            <ul class="ml-4 mt-2 space-y-1 text-sm text-slate-400">
-                                ${process.tasks.map(task => `<li class="truncate hover:text-white transition duration-150">${task.title}</li>`).join('')}
-                            </ul>
-                        </details>
-                    `;
+            processes.sort().forEach(process => {
+                // 仅显示当前状态下有任务的流程
+                const count = mockTasks.filter(t => t.status === currentFilter && t.process === process).length;
+                if (count > 0) {
+                     optionsHtml += `<option value="${process}">${process} (${count})</option>`;
                 }
             });
+            
+            processFilterSelect.innerHTML = optionsHtml;
+            
+            // 确保 dropdown 选中当前筛选值
+            // 修复: 确保 currentProcessFilter 有值，如果没有（例如在 setTaskFilter 中重置了），则设置为 'All'
+            if (!processFilterSelect.querySelector(`option[value="${currentProcessFilter}"]`)) {
+                 currentProcessFilter = 'All';
+            }
+            processFilterSelect.value = currentProcessFilter;
         }
 
         /**
-         * 渲染任务列表 (中栏)
+         * 设置流程筛选状态
+         */
+        function setProcessFilter(process) {
+            currentProcessFilter = process;
+            renderTaskList();
+        }
+
+
+        /**
+         * 渲染任务列表
          */
         function renderTaskList() {
             tasksContainer.innerHTML = ''; // 清空列表
+            const searchTerm = taskSearchInput.value.toLowerCase();
 
-            const filteredTasks = mockTasks.filter(t => t.status === currentFilter);
+            // 1. 过滤任务: 状态 + 流程 + 搜索
+            const filteredTasks = mockTasks.filter(t => 
+                t.status === currentFilter && 
+                (currentProcessFilter === 'All' || t.process === currentProcessFilter) &&
+                (t.title.toLowerCase().includes(searchTerm) || t.process.toLowerCase().includes(searchTerm))
+            );
 
-            // 1. 任务分组逻辑
+            // 2. 任务分组逻辑 (仅对 Pending 任务进行逾期/截止分组)
             const overdueTasks = [];
             const upcomingTasks = [];
             const standardTasks = [];
+            const completedTasks = [];
 
             filteredTasks.forEach(task => {
-                const dueDate = new Date(task.dueDate).setHours(0, 0, 0, 0);
-                const diffDays = (dueDate - TODAY) / (1000 * 60 * 60 * 24);
+                if (task.status === 'Pending') {
+                    const dueDate = new Date(task.dueDate).setHours(0, 0, 0, 0);
+                    const diffDays = (dueDate - TODAY) / (1000 * 60 * 60 * 24);
 
-                if (diffDays < 0) {
-                    overdueTasks.push(task);
-                } else if (diffDays <= 3) { // 3天内截止算作即将截止
-                    upcomingTasks.push(task);
+                    if (diffDays < 0) {
+                        overdueTasks.push(task);
+                    } else if (diffDays <= 3) { // 3天内截止算作即将截止
+                        upcomingTasks.push(task);
+                    } else {
+                        standardTasks.push(task);
+                    }
                 } else {
-                    standardTasks.push(task);
+                    completedTasks.push(task);
                 }
             });
 
             const renderGroup = (tasks, title, isUrgent) => {
                 if (tasks.length === 0) return '';
-                let groupHtml = `<div class="p-2 pt-4 text-xs font-semibold uppercase text-slate-400">${title} (${tasks.length})</div>`;
+                let groupHtml = `<div class="p-2 pt-4 text-xs font-semibold uppercase ${isUrgent ? 'text-red-600' : 'text-gray-500'}">${title} (${tasks.length})</div>`;
                 groupHtml += tasks.map(task => createTaskItemHtml(task, isUrgent)).join('');
                 return groupHtml;
             };
 
-            // 2. 渲染分组 (逾期/最近截止/标准)
+            // 2. 渲染分组 (根据当前 filter 渲染不同的分组)
             let allTasksHtml = '';
-            allTasksHtml += renderGroup(overdueTasks, '🚨 已逾期任务', true);
-            allTasksHtml += renderGroup(upcomingTasks, '⏳ 最近截止任务 (3天内)', true);
-            allTasksHtml += renderGroup(standardTasks, '待处理任务', false);
-
+            if (currentFilter === 'Pending') {
+                allTasksHtml += renderGroup(overdueTasks, '🚨 已逾期任务', true);
+                allTasksHtml += renderGroup(upcomingTasks, '⏳ 最近截止任务 (3天内)', true);
+                allTasksHtml += renderGroup(standardTasks, '待处理任务', false);
+            } else { // Completed
+                 allTasksHtml += renderGroup(completedTasks, '✅ 已办任务', false);
+            }
+            
             tasksContainer.innerHTML = allTasksHtml;
-
+            
             // 3. 选中状态处理
             if (activeTaskId) {
                 const activeItem = document.getElementById(`task-${activeTaskId}`);
                 if (activeItem) {
-                    activeItem.classList.add('bg-slate-600', 'border-l-4', 'border-indigo-500');
+                    // 浅色主题下的选中样式
+                    activeItem.classList.add('bg-indigo-100', 'border-l-4', 'border-indigo-600');
                 }
             }
+
+            // 4. 更新流程和状态筛选器上的计数
+            populateProcessFilter(); // 重新计算流程分组的待办数量
+            updateTabCounts();
         }
+
+        /**
+         * 更新待办/已办 Tab 上的任务计数
+         */
+        function updateTabCounts() {
+            const pendingCount = mockTasks.filter(t => t.status === 'Pending').length;
+            const completedCount = mockTasks.filter(t => t.status === 'Completed').length;
+            
+            document.getElementById('tab-pending').textContent = `待办任务 (${pendingCount})`;
+            document.getElementById('tab-completed').textContent = `已办任务 (${completedCount})`;
+        }
+
 
         /**
          * 创建单个任务项的 HTML
@@ -359,21 +419,24 @@
             const priorityColor = task.priority === 'High' ? 'bg-red-500' :
                                   task.priority === 'Medium' ? 'bg-amber-500' : 'bg-blue-500';
 
-            const itemClass = `p-4 border-b border-slate-700 cursor-pointer hover:bg-slate-700 transition duration-150 ${isUrgent ? 'bg-slate-700 hover:bg-slate-600' : ''}`;
+            // 浅色主题下的样式调整
+            const itemClass = `p-4 border-b border-gray-200 cursor-pointer hover:bg-indigo-50 transition duration-150 ${isUrgent ? 'bg-red-50 hover:bg-red-100' : 'bg-white'}`;
+            const processTextColor = isUrgent ? 'text-red-700' : 'text-gray-500';
+            const dateTextColor = isUrgent ? 'text-red-500 font-bold' : 'text-gray-500';
 
-            // 简化内容以适应收窄的宽度
+
             return `
                 <div id="task-${task.id}" class="${itemClass}" onclick="selectTask(${task.id})">
                     <div class="flex justify-between items-start">
                         <div class="flex items-center">
                             <span class="text-xl mr-2">${task.icon}</span>
-                            <h3 class="font-semibold text-base truncate">${task.title}</h3>
+                            <h3 class="font-semibold text-base truncate text-gray-800">${task.title}</h3>
                         </div>
                     </div>
-                    <p class="text-xs text-slate-400 mt-1 truncate">流程：${task.process}</p>
-                    <div class="flex justify-between text-xs text-slate-400 mt-2">
+                    <p class="text-xs ${processTextColor} mt-1 truncate">流程：${task.process}</p>
+                    <div class="flex justify-between text-xs text-gray-500 mt-2">
                         <span class="text-xs ${priorityColor} text-white px-2 py-0.5 rounded-full">${task.priority}</span>
-                        <span class="flex items-center ${isUrgent ? 'text-red-400' : ''}">
+                        <span class="flex items-center ${dateTextColor}">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             ${formattedDate}
                         </span>
@@ -405,12 +468,18 @@
                 row.forEach((cell, colIndex) => {
                     if (rowIndex === 0) {
                         tableHtml += `<th>${cell}</th>`; // 表头
-                    } else if (colIndex === 0) {
-                        tableHtml += `<th><th>${cell}</th></th>`; // 第一列作为标题
                     } else {
-                        // 模拟可编辑单元格 (除了第一行和第一列)
-                        const isEditable = rowIndex < tableData.length - 1 && colIndex > 1; // 模拟只有预测值可编辑
-                        tableHtml += `<td ${isEditable ? 'contenteditable="true"' : 'class="bg-slate-800 text-slate-400"'} >${cell}</td>`;
+                        // 模拟可编辑单元格 (只有“12月预测”和“备注”可编辑)
+                        const isEditable = rowIndex < tableData.length - 1 && (colIndex === 3 || colIndex === 4); 
+                        const isTitle = colIndex === 0 && rowIndex > 0;
+
+                        if (isTitle) {
+                           tableHtml += `<th>${cell}</th>`; // 第一列作为标题
+                        } else {
+                           // 浅色主题下的可编辑单元格样式
+                           const editableClass = isEditable ? 'contenteditable="true" class="bg-gray-100 hover:bg-gray-200 transition duration-100"' : 'class="bg-white text-gray-700"';
+                           tableHtml += `<td ${editableClass}>${cell}</td>`;
+                        }
                     }
                 });
                 tableHtml += '</tr>';
@@ -430,16 +499,14 @@
             if (task.reports && task.reports.length > 0) {
                 task.reports.forEach(report => {
                     const button = document.createElement('button');
-                    button.className = `w-full text-left p-2 rounded-lg text-sm transition duration-150 truncate ${report.active ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+                    // 浅色主题下的报表导航样式
+                    button.className = `w-full text-left p-2 rounded-lg text-sm transition duration-150 truncate ${report.active ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`;
                     button.textContent = report.name;
                     button.onclick = () => selectReport(task.id, report.id, report.name);
                     reportNavContainer.appendChild(button);
-
-                    // 移除了这里的 if (report.active) { selectReport(...) } 逻辑，防止无限递归
                 });
             } else {
-                reportNavContainer.innerHTML = '<p class="text-sm text-slate-400">该任务无报表内容。</p>';
-                // Note: The detail title/content setup for no-reports is now handled in renderTaskDetail
+                reportNavContainer.innerHTML = '<p class="text-sm text-gray-500 p-2">该任务无关联报表内容。</p>';
             }
         }
 
@@ -456,7 +523,7 @@
                 document.getElementById('report-detail-title').textContent = `📝 ${reportName} - 填写/修改`;
                 renderExcelReport(reportId); // 模拟加载 Excel 内容
 
-                // 3. 重新渲染导航以更新选中状态 (不会导致递归，因为 renderReportNavigation 已经被修改)
+                // 3. 重新渲染导航以更新选中状态
                 renderReportNavigation(task);
              }
         }
@@ -467,32 +534,36 @@
          * @param {object} task - 选中的任务对象
          */
         function renderTaskDetail(task) {
+            activeTaskId = task.id; // 确保 activeTaskId 始终与当前渲染的任务匹配
             initialMessage.classList.add('hidden'); // 隐藏初始提示
             taskDataView.classList.remove('hidden');
 
             // 1. 顶部操作区
             document.getElementById('task-title-display').textContent = task.title;
             document.getElementById('task-desc-display').innerHTML = `
-                <span class="text-indigo-400 font-medium">${task.process}</span> |
-                申请人: <span class="text-white">${task.applicant}</span> |
-                截止日期: <span class="${new Date(task.dueDate) < new Date() ? 'text-red-400' : 'text-green-400'}">${task.dueDate}</span>
+                <span class="text-indigo-600 font-medium">${task.process}</span> |
+                申请人: <span class="text-gray-800">${task.applicant}</span> |
+                截止日期: <span class="${new Date(task.dueDate) < TODAY ? 'text-red-500 font-bold' : 'text-green-600'}">${task.dueDate}</span>
             `;
 
             // 2. 报表导航和详情 split
-            // 2.1. 渲染导航栏按钮
             renderReportNavigation(task);
 
-            // 2.2. 独立处理默认报表加载或无报表情况 (修复递归点)
+            // 独立处理默认报表加载或无报表情况
             if (task.reports && task.reports.length > 0) {
                 const activeReport = task.reports.find(r => r.active);
                 if (activeReport) {
-                    // 仅调用一次 selectReport 来加载详情和设置标题 (不会再触发 renderReportNavigation 中的递归)
                     selectReport(task.id, activeReport.id, activeReport.name);
+                } else {
+                    // 如果没有默认激活的，则激活第一个并渲染
+                    task.reports[0].active = true;
+                    selectReport(task.id, task.reports[0].id, task.reports[0].name);
                 }
             } else {
                  // 如果没有报表，则显示任务内容
-                document.getElementById('report-detail-title').textContent = '该任务无报表内容，请参阅描述。';
-                document.getElementById('excel-editor').innerHTML = `<p class="p-4 text-slate-400">${task.content}</p>`;
+                document.getElementById('report-detail-title').textContent = '📝 任务说明';
+                // 浅色主题下的任务内容显示样式
+                document.getElementById('excel-editor').innerHTML = `<p class="p-4 text-gray-700 bg-gray-100 rounded-lg whitespace-normal">${task.content}</p>`;
             }
 
             // 确保详情内容是可见的
@@ -503,17 +574,28 @@
          * 设置任务过滤器 (待办/已办)
          */
         function setTaskFilter(filter) {
+            if (currentFilter === filter) {
+                // 如果是切换到当前状态，则只执行一次渲染和更新计数
+                renderTaskList();
+                return;
+            }
+            
             currentFilter = filter;
+            currentProcessFilter = 'All'; // 切换 Tab 时重置流程筛选
 
-            // 确保移除所有 tab 的 active 样式
+            // 移除所有 tab 的 active 样式 (浅色主题)
             document.getElementById('tab-pending').classList.remove('bg-indigo-600', 'text-white');
-            document.getElementById('tab-pending').classList.add('bg-slate-700', 'text-slate-400');
+            document.getElementById('tab-pending').classList.add('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
             document.getElementById('tab-completed').classList.remove('bg-indigo-600', 'text-white');
-            document.getElementById('tab-completed').classList.add('bg-slate-700', 'text-slate-400');
+            document.getElementById('tab-completed').classList.add('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
 
             // 添加当前选中 tab 的 active 样式
-            document.getElementById(`tab-${filter.toLowerCase()}`).classList.remove('bg-slate-700', 'text-slate-400');
+            document.getElementById(`tab-${filter.toLowerCase()}`).classList.remove('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
             document.getElementById(`tab-${filter.toLowerCase()}`).classList.add('bg-indigo-600', 'text-white');
+            
+            // 重置流程筛选器到 'All' 选项
+            processFilterSelect.value = 'All';
+            taskSearchInput.value = '';
 
             renderTaskList();
         }
@@ -523,17 +605,26 @@
          * 选择任务并切换详情界面
          */
         function selectTask(taskId) {
-            if (activeTaskId === taskId) return; // 防止重复点击
-
             // 移除旧任务的选中状态
             if (activeTaskId) {
                 const oldItem = document.getElementById(`task-${activeTaskId}`);
                 if (oldItem) {
-                     oldItem.classList.remove('bg-slate-600', 'border-l-4', 'border-indigo-500');
+                     oldItem.classList.remove('bg-indigo-100', 'border-l-4', 'border-indigo-600');
+                     // 恢复旧任务的默认或紧急背景色
+                     const task = mockTasks.find(t => t.id === activeTaskId);
+                     if (task) {
+                         const dueDate = new Date(task.dueDate).setHours(0, 0, 0, 0);
+                         const isUrgent = (dueDate - TODAY) / (1000 * 60 * 60 * 24) < 4 && task.status === 'Pending';
+                         oldItem.classList.remove('bg-red-100'); // remove potential hover class
+                         if (isUrgent) {
+                            oldItem.classList.add('bg-red-50');
+                         } else {
+                            oldItem.classList.add('bg-white');
+                         }
+                     }
                 }
             }
-
-            activeTaskId = taskId;
+            
             const task = mockTasks.find(t => t.id === taskId);
 
             // 渲染详情
@@ -541,12 +632,18 @@
                 renderTaskDetail(task);
             }
 
-            // 重新渲染列表以更新选中状态
-            renderTaskList();
+            // 列表项的选中样式
+            const newItem = document.getElementById(`task-${taskId}`);
+            if (newItem) {
+                // 移除所有背景色并添加选中样式
+                newItem.classList.remove('bg-white', 'bg-red-50', 'hover:bg-indigo-50', 'hover:bg-red-100');
+                newItem.classList.add('bg-indigo-100', 'border-l-4', 'border-indigo-600');
+            }
+
 
             // 移动端：隐藏列表，显示详情
             if (window.innerWidth < 768) {
-                document.getElementById('task-list-container').style.display = 'none';
+                taskListContainer.style.display = 'none';
                 detailContainer.classList.remove('hidden-mobile');
                 detailContainer.style.width = '100%';
             }
@@ -562,18 +659,20 @@
             const message = `${action} 操作已对任务 "${task.title}" (ID: ${taskId}) 模拟执行成功！`;
             showNotification(message, action === 'Complete' ? 'success' : 'info');
 
-            // 模拟任务状态更新 (从 Pending 移出)
+            // 模拟任务状态更新
             const index = mockTasks.findIndex(t => t.id === taskId);
             if (index > -1) {
-                // mockTasks.splice(index, 1); // 模拟删除
-                mockTasks[index].status = 'Completed'; // 模拟完成
+                // 只有 pending 任务才能被操作
+                if (mockTasks[index].status === 'Pending') {
+                    mockTasks[index].status = action === 'Complete' ? 'Completed' : 'Rejected'; 
+                }
             }
 
             // 重置界面
             activeTaskId = null;
-            // 关键：确保操作完成后仍显示“待办任务”
-            setTaskFilter('Pending');
-            renderProcessList(); // 流程列表也需更新
+            
+            // 关键：确保操作完成后仍显示“待办任务”并刷新列表
+            setTaskFilter('Pending'); 
 
             // 隐藏详情页，显示初始信息
             taskDataView.classList.add('hidden');
@@ -581,7 +680,7 @@
 
             // 移动端：显示列表
             if (window.innerWidth < 768) {
-                document.getElementById('task-list-container').style.display = 'flex';
+                taskListContainer.style.display = 'flex';
                 detailContainer.classList.add('hidden-mobile');
             }
         }
@@ -590,7 +689,7 @@
          * 消息通知函数 (替代 alert)
          */
         function showNotification(message, type) {
-            let bgColor = type === 'success' ? 'bg-green-500' : 'bg-indigo-500';
+            let bgColor = type === 'success' ? 'bg-green-600' : 'bg-indigo-600';
             let icon = type === 'success' ? '✅' : 'ℹ️';
 
             const notif = document.createElement('div');
@@ -607,16 +706,22 @@
 
         // 移动端返回按钮事件
         backButton.addEventListener('click', () => {
-            document.getElementById('task-list-container').style.display = 'flex';
+            taskListContainer.style.display = 'flex';
             detailContainer.classList.add('hidden-mobile');
         });
 
 
         // 初始化加载
         document.addEventListener('DOMContentLoaded', () => {
-            // 默认情况下，currentFilter 是 'Pending'
-            renderTaskList();
-            renderProcessList();
+            // 确保初始状态为 'Pending'
+            currentFilter = 'Pending'; 
+            currentProcessFilter = 'All'; 
+            
+            // 1. 渲染任务列表 (这将调用 populateProcessFilter 并设置默认值)
+            renderTaskList(); 
+            
+            // 2. 确保 Tab 状态正确 (虽然 renderTaskList 中有调用 updateTabCounts，但这里再次调用以防万一)
+            setTaskFilter('Pending'); 
         });
     </script>
 </body>
