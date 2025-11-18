@@ -43,6 +43,9 @@
             background-color: #ffffff; /* White for cell background */
             color: #374151; /* Gray-700 */
         }
+        .excel-like-table td[contenteditable="true"] {
+             background-color: #f3f4f6; /* Light gray for editable cells */
+        }
         .excel-like-table {
             border-collapse: collapse;
             width: 100%;
@@ -443,17 +446,103 @@
         function renderExcelReport(reportId) {
             const editorDiv = document.getElementById('excel-editor');
 
-            // 模拟 Excel 报表数据
-            const tableData = [
-                ['项目', '11月预算 (K)', '11月实际 (K)', '12月预测 (K)', '备注'],
-                ['人力成本', 200, 205, 210, '人员变动'],
-                ['软件许可费', 50, 48, 50, '已支付'],
-                ['差旅费用', 30, 35, 40, '待报销'],
-                ['办公耗材', 10, 8, 12, ''],
-                ['总计', 290, 296, 312, '']
-            ];
+            // --- 优化: 根据 reportId 切换不同的模拟数据 ---
+            let tableData = [];
+            // isEditable 函数会根据表格行索引、列索引和整行数据判断单元格是否可编辑
+            let isEditable = (rowIndex, colIndex, row) => false;
 
-            let tableHtml = '<div class="overflow-x-auto"><table class="excel-like-table">';
+            switch (reportId) {
+                case 'R1': // 部门费用预算表
+                    tableData = [
+                        ['费用类型', '11月预算 (K)', '11月实际 (K)', '12月预测 (K)', '备注'],
+                        ['人力成本', 200, 205, 210, '人员变动'],
+                        ['软件许可费', 50, 48, 50, '已支付'],
+                        ['差旅费用', 30, 35, 40, '待报销'],
+                        ['办公耗材', 10, 8, 12, ''],
+                        ['总计', 290, 296, 312, ''] // 最后一行为总计
+                    ];
+                    // Editable logic for R1: '12月预测 (K)' (index 3) and '备注' (index 4) for non-total rows
+                    isEditable = (rowIndex, colIndex, row) => rowIndex > 0 && rowIndex < tableData.length - 1 && (colIndex === 3 || colIndex === 4);
+                    break;
+                case 'R2': // 资本支出申请表
+                    tableData = [
+                        ['资产名称', '型号', '数量', '单价 (K)', '总价 (K)', '批准状态'],
+                        ['新服务器A', 'R750', 3, 40, 120, '待批准'],
+                        ['高配工作站', 'Z4 G5', 10, 15, 150, '已批准'],
+                        ['网络存储 (NAS)', 'DS3622xs+', 1, 30, 30, '待批准'],
+                        ['合计', '—', '—', '—', '—', '—'] // 最后一行为总计
+                    ];
+                    // Editable logic for R2: '批准状态' (index 5) for non-total rows
+                    isEditable = (rowIndex, colIndex, row) => rowIndex > 0 && rowIndex < tableData.length - 1 && colIndex === 5;
+                    break;
+                case 'R3': // 员工薪酬预测表
+                    tableData = [
+                        ['部门', '人数', '平均月薪 (K)', '年度总薪酬 (K)', '涨幅预测 (%)'],
+                        ['研发部', 50, 25, 15000, 8],
+                        ['市场部', 20, 18, 4320, 5],
+                        ['行政部', 10, 12, 1440, 3],
+                        ['总计', 80, '—', 20760, '—'] // 最后一行为总计
+                    ];
+                    // Editable logic for R3: '涨幅预测 (%)' (index 4) for non-total rows
+                    isEditable = (rowIndex, colIndex, row) => rowIndex > 0 && rowIndex < tableData.length - 1 && colIndex === 4;
+                    break;
+                case 'R4': // 差旅报销汇总表 (只读审核)
+                    tableData = [
+                        ['报销人', '出差地点', '出差日期', '交通费用', '住宿费用', '餐补/其他', '总计 (RMB)'],
+                        ['张华', '上海', '11.01-11.03', 1200, 800, 300, 2300],
+                        ['王芳', '深圳', '11.15-11.17', 1500, 900, 400, 2800],
+                        ['李明', '北京', '11.20-11.22', 1800, 1000, 500, 3300],
+                        ['合计', '—', '—', '—', '—', '—', 8400] // 最后一行为总计
+                    ];
+                    // Editable logic for R4: None of the data fields are editable (read-only review)
+                    isEditable = (rowIndex, colIndex, row) => false;
+                    break;
+                case 'R5': // 市场推广费用报表
+                     tableData = [
+                        ['项目', '预算 (K)', '实际花费 (K)', 'ROI (%)', '完成状态'],
+                        ['搜索引擎优化 (SEO)', 50, 45, 150, '已完成'],
+                        ['社交媒体广告', 100, 110, 80, '进行中'],
+                        ['行业会议赞助', 80, 78, 120, '已完成'],
+                        ['总计', 230, 233, '—', '—'] // 最后一行为总计
+                    ];
+                    // Editable logic for R5: '实际花费 (K)' (index 2) and '完成状态' (index 4) for non-total rows
+                    isEditable = (rowIndex, colIndex, row) => rowIndex > 0 && rowIndex < tableData.length - 1 && (colIndex === 2 || colIndex === 4);
+                    break;
+                case 'R6': // 事故原因分析报告 (Task 5)
+                    tableData = [
+                        ['阶段', '时间', '描述', '责任人'],
+                        ['发现', '2025-12-05 10:00', 'SaaS平台核心服务宕机报警', '监控系统'],
+                        ['定级', '2025-12-05 10:15', 'P1 生产系统完全不可用', '运维主管'],
+                        ['原因分析', '2025-12-05 11:30', '数据库连接池耗尽，是应用层Bug导致循环请求', '开发工程师'],
+                        ['根因', '2025-12-05 12:00', '错误的缓存配置导致递归调用', '架构师'],
+                    ];
+                    // Editable logic for R6: '责任人' (index 3)
+                    isEditable = (rowIndex, colIndex, row) => rowIndex > 0 && colIndex === 3;
+                    break;
+                case 'R7': // 修复操作日志 (Task 5)
+                    tableData = [
+                        ['操作时间', '操作内容', '操作人', '结果'],
+                        ['2025-12-05 10:30', '重启核心服务', '运维A', '失败'],
+                        ['2025-12-05 12:15', '回滚至上一个稳定版本', '运维B', '成功'],
+                        ['2025-12-05 12:45', '监控确认服务稳定并解除警报', '运维A', '完成'],
+                    ];
+                    // Editable logic for R7: '操作人' (index 2) and '结果' (index 3)
+                    isEditable = (rowIndex, colIndex, row) => rowIndex > 0 && (colIndex === 2 || colIndex === 3);
+                    break;
+                default:
+                    tableData = [
+                        ['项目', '数据项A', '数据项B', '数据项C', '备注'],
+                        ['示例行1', '值1', '值2', '值3', '一般备注'],
+                        ['示例行2', '值4', '值5', '值6', '另一个备注'],
+                        ['总计', '—', '—', '—', '—'],
+                    ];
+                    // Default editable logic: Last two columns for non-total rows
+                    isEditable = (rowIndex, colIndex, row) => rowIndex < tableData.length - 1 && (colIndex === row.length - 1 || colIndex === row.length - 2);
+                    break;
+            }
+
+            // --- 渲染 Excel 样式表格的逻辑 ---
+            let tableHtml = `<div class="overflow-x-auto"><table class="excel-like-table">`;
 
             tableData.forEach((row, rowIndex) => {
                 tableHtml += '<tr>';
@@ -461,15 +550,19 @@
                     if (rowIndex === 0) {
                         tableHtml += `<th>${cell}</th>`; // 表头
                     } else {
-                        // 模拟可编辑单元格 (只有“12月预测”和“备注”可编辑)
-                        const isEditable = rowIndex < tableData.length - 1 && (colIndex === 3 || colIndex === 4);
-                        const isTitle = colIndex === 0 && rowIndex > 0;
+                        // 最后一行为总计/合计，不作为标题
+                        const isLastRow = rowIndex === tableData.length - 1;
+                        // 第一列作为标题 (除第一行和最后一行外)
+                        const isTitle = colIndex === 0 && !isLastRow;
+
+                        // 使用 switch case 定义的 isEditable 函数判断当前单元格是否可编辑
+                        const cellIsEditable = isEditable(rowIndex, colIndex, row);
 
                         if (isTitle) {
                            tableHtml += `<th>${cell}</th>`; // 第一列作为标题
                         } else {
                             // 浅色主题下的可编辑单元格样式
-                            const editableClass = isEditable ? 'contenteditable="true" class="bg-gray-100 hover:bg-gray-200 transition duration-100"' : 'class="bg-white text-gray-700"';
+                            const editableClass = cellIsEditable ? 'contenteditable="true" class="bg-gray-100 hover:bg-gray-200 transition duration-100"' : 'class="bg-white text-gray-700"';
                             tableHtml += `<td ${editableClass}>${cell}</td>`;
                         }
                     }
@@ -623,7 +716,7 @@
             document.getElementById('task-desc-display').innerHTML = `
                 <span class="text-indigo-600 font-medium">${task.process}</span> |
                 申请人: <span class="text-gray-800">${task.applicant}</span> |
-                截止日期: <span class="${new Date(task.dueDate) < TODAY ? 'text-red-500 font-bold' : 'text-green-600'}">${task.dueDate}</span>
+                截止日期: <span class="${new Date(task.dueDate).setHours(0, 0, 0, 0) < TODAY ? 'text-red-500 font-bold' : 'text-green-600'}">${task.dueDate}</span>
             `;
 
             // 2. 报表导航和详情 split
