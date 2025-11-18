@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>预算编制任务树形看板原型</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 引入 Inter 字体 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Gray-100 Light Background */
+            color: #1f2937; /* Gray-800 Default Text Color */
+        }
+        /* 自定义滚动条样式 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* Gray-300 */
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f8f8f8;
+        }
+
+        /* 针对表格的样式 */
+        .tree-table th {
+            text-align: left;
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            font-weight: 600;
+            color: #4b5563; /* Gray-600 */
+            border-bottom: 2px solid #e5e7eb; /* Gray-200 */
+            background-color: #f9fafb; /* Gray-50 */
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .tree-table td {
+            height: 100%; /* Ensure full height for background color */
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden">
+
+    <div id="app" class="h-full flex">
+
+        <!-- 左侧：任务树形表格 (Tree-Table) -->
+        <div class="w-2/3 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col custom-scrollbar overflow-y-auto">
+            <div class="p-4 border-b border-gray-200 sticky top-0 bg-white z-10 shadow-sm">
+                <h1 class="text-xl font-bold text-indigo-600">
+                    <svg class="w-6 h-6 inline-block mr-2 align-top" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2m-7 0h2"></path></svg>
+                    2026 年度预算编制 - 计划流概览
+                </h1>
+                <p class="text-sm text-gray-500 mt-1">点击行展开/折叠阶段或查看任务详情</p>
+            </div>
+
+            <div class="flex-grow overflow-y-auto">
+                <table class="tree-table min-w-full divide-y divide-gray-200">
+                    <thead class="sticky top-0">
+                        <tr>
+                            <th class="w-1/3">计划项/任务名称</th>
+                            <th class="w-1/6">责任人</th>
+                            <th class="w-1/6">进度</th>
+                            <th class="w-1/6">截止日期</th>
+                            <th class="w-1/6">依赖</th>
+                        </tr>
+                    </thead>
+                    <tbody id="plan-flow-table-body" class="bg-white divide-y divide-gray-100">
+                        <!-- 任务数据将在此处渲染 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 右侧：任务详情面板 -->
+        <div class="w-1/3 flex-shrink-0 bg-white border-l border-gray-200 flex flex-col custom-scrollbar overflow-y-auto shadow-lg">
+            <div class="p-6 border-b border-gray-200 sticky top-0 bg-gray-50 z-10">
+                <h2 class="text-xl font-bold text-gray-800">计划项详情</h2>
+            </div>
+            <div id="task-detail-content" class="flex-grow p-4 bg-white">
+                <div class="p-10 text-center text-gray-500">
+                    <svg class="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p>请从左侧表格中选择一个计划项查看详情。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟预算编制的计划流数据 (树状结构)
+        const budgetPlanTree = [
+            { id: 100, name: '项目准备与启动', type: 'Phase', progress: 100, children: [
+                { id: 101, name: '预算目标设定', type: 'Milestone', progress: 100, startDate: '2025-11-01', endDate: '2025-11-05', owner: '高管层', status: 'Completed' },
+                { id: 102, name: '预算模型与工具准备', type: 'Task', progress: 100, startDate: '2025-11-01', endDate: '2025-11-10', owner: 'IT/财务部', status: 'Completed' }
+            ]},
+            { id: 200, name: '部门草案编制', type: 'Phase', progress: 75, children: [
+                { id: 201, name: '下发编制模板', type: 'Task', progress: 100, startDate: '2025-11-11', endDate: '2025-11-12', owner: '财务部', status: 'Completed' },
+                { id: 202, name: '各部门费用预算提报', type: 'Task', progress: 100, startDate: '2025-11-13', endDate: '2025-11-20', owner: '各部门负责人', status: 'Completed' },
+                { id: 203, name: '资本支出计划提报', type: 'Task', progress: 50, startDate: '2025-11-21', endDate: '2025-11-28', owner: '技术/运营部', status: 'Pending', dependencies: [202] },
+                { id: 204, name: '收入预测模型核对', type: 'Task', progress: 0, startDate: '2025-11-29', endDate: '2025-12-05', owner: '市场部', status: 'Pending', dependencies: [202] }
+            ]},
+            { id: 300, name: '复核与审批', type: 'Phase', progress: 10, children: [
+                { id: 301, name: '财务初审与汇总', type: 'Task', progress: 10, startDate: '2025-12-06', endDate: '2025-12-15', owner: '财务部', status: 'Pending', dependencies: [203, 204] },
+                { id: 302, name: '高管委员会审批', type: 'Milestone', progress: 0, startDate: '2025-12-16', endDate: '2025-12-20', owner: '高管委', status: 'Pending', dependencies: [301] }
+            ]},
+            { id: 400, name: '预算发布与锁定', type: 'Phase', progress: 0, children: [
+                { id: 401, name: '系统录入与锁定', type: 'Task', progress: 0, startDate: '2025-12-21', endDate: '2025-12-25', owner: 'IT/财务部', status: 'Pending', dependencies: [302] }
+            ]}
+        ];
+
+        let activeNodeId = 200; // 默认激活“部门草案编制”阶段
+        let expandedNodes = new Set([100, 200, 300, 400]); // 初始展开所有阶段
+
+        /**
+         * 递归查找节点
+         */
+        function findNodeById(nodes, id) {
+            for (const node of nodes) {
+                if (node.id === id) {
+                    return node;
+                }
+                if (node.children) {
+                    const found = findNodeById(node.children, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * 切换节点的展开/折叠状态
+         */
+        function toggleExpansion(id) {
+            if (expandedNodes.has(id)) {
+                expandedNodes.delete(id);
+            } else {
+                expandedNodes.add(id);
+            }
+            // 重新渲染整个表格以更新可见性
+            renderTreeTable();
+            // 保持当前选中状态高亮
+            selectPlanNode(activeNodeId, false);
+        }
+
+        /**
+         * 递归渲染左侧的树状表格行
+         * @param {Array} nodes - 计划项数组
+         * @param {number} level - 嵌套层级
+         * @param {number} parentId - 父节点ID
+         */
+        function renderTreeTableRows(nodes, level = 0, parentId = null) {
+            let html = '';
+            // 如果父节点未展开，则不渲染其子节点
+            const isParentExpanded = parentId === null || expandedNodes.has(parentId);
+            if (!isParentExpanded) return '';
+
+            nodes.forEach(node => {
+                const isActive = node.id === activeNodeId;
+                const progressColor = node.progress === 100 ? 'text-emerald-600' : 'text-indigo-600';
+                const progressBg = node.progress === 100 ? 'bg-emerald-500' : 'bg-indigo-500';
+                const rowBg = isActive ? 'bg-indigo-50' : 'hover:bg-gray-100';
+                const isPhase = node.type === 'Phase';
+                const hasChildren = isPhase && node.children && node.children.length > 0;
+                const isExpanded = expandedNodes.has(node.id);
+
+                // 计算依赖关系文本
+                const dependenciesText = node.dependencies ? node.dependencies.map(depId => {
+                    const depNode = findNodeById(budgetPlanTree, depId);
+                    return depNode ? depNode.name : `ID:${depId}`;
+                }).join('; ') : '—';
+
+                // 展开/折叠图标或占位符
+                let expandIcon = '';
+                let typeIcon = '';
+
+                if (hasChildren) {
+                    expandIcon = `
+                        <svg onclick="event.stopPropagation(); toggleExpansion(${node.id})"
+                             class="w-4 h-4 text-gray-500 hover:text-indigo-600 transition cursor-pointer inline-block mr-2 transform ${isExpanded ? 'rotate-90' : ''}"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>`;
+                    typeIcon = `<span class="text-xs mr-1 text-gray-500">&#9679;</span>`; // Phase circle
+                } else if (node.type === 'Milestone') {
+                     typeIcon = `<span class="text-xs mr-1 text-yellow-600">&#9733;</span>`; // Milestone star
+                     expandIcon = `<span style="width: 1rem; display: inline-block;" class="mr-2"></span>`; // Placeholder for alignment
+                } else {
+                     typeIcon = `<span class="text-xs mr-1 text-indigo-600">&#9642;</span>`; // Task square
+                     expandIcon = `<span style="width: 1rem; display: inline-block;" class="mr-2"></span>`; // Placeholder for alignment
+                }
+
+                // 缩进样式: 1.5rem for each level + 1rem base padding from <td>
+                const indentStyle = `padding-left: ${level * 1.5 + 1}rem;`;
+
+                html += `
+                    <tr id="table-row-${node.id}"
+                        onclick="selectPlanNode(${node.id})"
+                        class="cursor-pointer border-b border-gray-100 ${rowBg}">
+
+                        <!-- 计划项名称 (带层级和展开图标) -->
+                        <td class="py-3 text-sm font-medium whitespace-nowrap" style="${indentStyle}">
+                            <div class="flex items-center">
+                                ${expandIcon}
+                                ${typeIcon}
+                                <span class="${isActive ? 'text-indigo-700' : 'text-gray-800'}">${node.name}</span>
+                            </div>
+                        </td>
+
+                        <!-- 责任人 -->
+                        <td class="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">${node.owner}</td>
+
+                        <!-- 进度 -->
+                        <td class="py-3 px-4 text-sm text-gray-600 w-32">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="h-2.5 rounded-full ${progressBg}" style="width: ${node.progress}%"></div>
+                                </div>
+                                <span class="text-xs font-semibold ${progressColor}">${node.progress}%</span>
+                            </div>
+                        </td>
+
+                        <!-- 截止日期 -->
+                        <td class="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">${node.endDate || '—'}</td>
+
+                        <!-- 依赖 -->
+                        <td class="py-3 px-4 text-xs text-gray-500 truncate max-w-xs">${dependenciesText}</td>
+                    </tr>
+                `;
+
+                // 递归渲染子节点
+                if (hasChildren) {
+                    html += renderTreeTableRows(node.children, level + 1, node.id);
+                }
+            });
+            return html;
+        }
+
+        /**
+         * 渲染主表格
+         */
+        function renderTreeTable() {
+            const tableBody = document.getElementById('plan-flow-table-body');
+            if (tableBody) {
+                tableBody.innerHTML = renderTreeTableRows(budgetPlanTree);
+            }
+        }
+
+        /**
+         * 选中表格行，并在右侧显示详情
+         * @param {number} id - 选中的计划项 ID
+         * @param {boolean} shouldToggleExpansion - 是否应该切换阶段的展开状态 (默认为 true)
+         */
+        function selectPlanNode(id, shouldToggleExpansion = true) {
+            // 1. 处理高亮样式
+            const oldRow = document.getElementById(`table-row-${activeNodeId}`);
+            if (oldRow) {
+                oldRow.classList.remove('bg-indigo-50');
+                oldRow.classList.add('hover:bg-gray-100');
+            }
+
+            activeNodeId = id;
+            const newRow = document.getElementById(`table-row-${activeNodeId}`);
+            if (newRow) {
+                newRow.classList.remove('hover:bg-gray-100');
+                newRow.classList.add('bg-indigo-50');
+            }
+
+            // 2. 如果是阶段 (Phase) 并且允许切换，则切换其展开状态
+            const selectedNode = findNodeById(budgetPlanTree, id);
+            if (selectedNode && selectedNode.type === 'Phase' && shouldToggleExpansion) {
+                toggleExpansion(id);
+            }
+
+            // 3. 渲染右侧详情面板
+            if (selectedNode) {
+                renderTaskDetail(selectedNode);
+            }
+        }
+
+        /**
+         * 渲染右侧任务详情面板
+         */
+        function renderTaskDetail(node) {
+            const detailContent = document.getElementById('task-detail-content');
+            const isPhase = node.type === 'Phase';
+
+            // Helper to get status tag HTML
+            const getStatusTag = (status) => {
+                let color = 'gray';
+                let text = '未开始';
+                if (status === 'Completed') { color = 'emerald'; text = '已完成'; }
+                if (status === 'Pending') { color = 'indigo'; text = '进行中'; }
+                if (status === 'Draft') { color = 'yellow'; text = '草稿'; }
+                return `<span class="text-xs font-bold uppercase px-3 py-1 rounded-full bg-${color}-100 text-${color}-700">${text}</span>`;
+            };
+
+            // Dependencies Text (recalculate to show names with clickability)
+            const dependenciesText = node.dependencies ? node.dependencies.map(depId => {
+                const depNode = findNodeById(budgetPlanTree, depId);
+                return `<span class="text-indigo-600 cursor-pointer hover:underline" onclick="selectPlanNode(${depId})">${depNode ? depNode.name : `ID:${depId}`}</span>`;
+            }).join(', ') : '无';
+
+            let detailHtml = '';
+
+            if (isPhase) {
+                // 阶段（Phase）详情 - 汇总信息
+                const totalTasks = node.children ? node.children.length : 0;
+                const completedTasks = node.children ? node.children.filter(t => t.status === 'Completed').length : 0;
+
+                detailHtml = `
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">${node.name} (阶段汇总)</h3>
+                        <div class="flex items-center space-x-3 mb-6">
+                            ${getStatusTag(node.progress === 100 ? 'Completed' : (node.progress > 0 ? 'Pending' : 'Draft'))}
+                        </div>
+
+                        <div class="bg-indigo-50 p-4 rounded-lg mb-6">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-semibold text-indigo-700">阶段总进度</span>
+                                <span class="text-xl font-bold text-indigo-700">${node.progress}%</span>
+                            </div>
+                            <div class="w-full bg-gray-300 rounded-full h-3">
+                                <div class="h-3 rounded-full bg-indigo-500" style="width: ${node.progress}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div class="p-4 bg-white rounded-lg border border-gray-200">
+                                <p class="text-gray-500">包含子项数</p>
+                                <p class="text-xl font-bold text-gray-800">${totalTasks}</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-lg border border-gray-200">
+                                <p class="text-gray-500">已完成子项</p>
+                                <p class="text-xl font-bold text-emerald-600">${completedTasks}</p>
+                            </div>
+                            <div class="p-4 bg-white rounded-lg border border-gray-200 col-span-2">
+                                <p class="text-gray-500 mb-1">阶段目标</p>
+                                <p class="text-gray-700">确保所有部门草案和基础数据提交流程的完成，准备进入集中复核阶段。</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // 任务/里程碑详情 - 任务执行信息
+                detailHtml = `
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">${node.name}</h3>
+                        <div class="flex items-center space-x-3 mb-6">
+                            ${getStatusTag(node.status)}
+                            <span class="text-sm text-gray-500">${node.type === 'Milestone' ? '里程碑' : '任务'}</span>
+                        </div>
+
+                        <div class="space-y-4 mb-8">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <span class="text-gray-500">任务责任人</span>
+                                <span class="font-semibold text-gray-800">${node.owner}</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <span class="text-gray-500">起止日期</span>
+                                <span class="font-semibold text-gray-800">${node.startDate || '—'} / ${node.endDate || '—'}</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <span class="text-gray-500">当前进度</span>
+                                <span class="font-semibold text-gray-800">${node.progress}%</span>
+                            </div>
+                            <div class="pb-2">
+                                <span class="text-gray-500 block mb-1">前置依赖</span>
+                                <span class="text-sm text-gray-700">${dependenciesText}</span>
+                            </div>
+                            <div class="pb-2">
+                                <span class="text-gray-500 block mb-1">当前表单/数据路径</span>
+                                <a href="#" class="text-sm text-indigo-600 hover:underline">点击进入预算编制界面</a>
+                            </div>
+                        </div>
+
+                        <!-- 模拟任务操作区 -->
+                        <div class="mt-8 pt-6 border-t border-gray-200">
+                            <h4 class="font-semibold text-gray-700 mb-3">任务操作</h4>
+                            <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-150 mr-2"
+                                onclick="handleTaskAction(${node.id}, 'Complete')">
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                提交流程/完成
+                            </button>
+                            <button class="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-md transition duration-150"
+                                onclick="handleTaskAction(${node.id}, 'Reject')">
+                                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                退回/拒绝
+                            </button>
+                            <p class="text-xs text-gray-500 mt-2">（点击操作按钮将更新任务状态并刷新页面）</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            detailContent.innerHTML = detailHtml;
+        }
+
+        /**
+         * 模拟任务操作
+         */
+        function handleTaskAction(taskId, action) {
+            const node = findNodeById(budgetPlanTree, taskId);
+            if (!node) return;
+
+            if (action === 'Complete') {
+                node.status = 'Completed';
+                node.progress = 100;
+                alert(`任务 [${node.name}] 已标记为 [已完成]! 页面已刷新。`);
+            } else if (action === 'Reject') {
+                node.status = 'Draft';
+                node.progress = 0;
+                alert(`任务 [${node.name}] 已标记为 [退回/草稿]! 页面已刷新。`);
+            }
+
+            // Re-render the table and detail view
+            renderTreeTable();
+            // 重新选中并渲染详情，但不触发阶段展开/折叠
+            selectPlanNode(taskId, false);
+        }
+
+
+        // 初始加载逻辑
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTreeTable();
+            // 确保初始选中的行高亮并显示其详情
+            selectPlanNode(activeNodeId, false);
+        });
+    </script>
+</body>
+</html>
